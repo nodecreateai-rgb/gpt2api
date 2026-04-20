@@ -1,7 +1,10 @@
 package config
 
 import (
+	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
@@ -127,11 +130,10 @@ func Load(path string) (*Config, error) {
 	var loadErr error
 	once.Do(func() {
 		v := viper.New()
-		v.SetConfigFile(path)
 		v.SetEnvPrefix("GPT2API")
 		v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 		v.AutomaticEnv()
-		if err := v.ReadInConfig(); err != nil {
+		if err := readInConfigWithFallback(v, path); err != nil {
 			loadErr = fmt.Errorf("read config: %w", err)
 			return
 		}
@@ -143,6 +145,50 @@ func Load(path string) (*Config, error) {
 		global = &c
 	})
 	return global, loadErr
+}
+
+func readInConfigWithFallback(v *viper.Viper, path string) error {
+	v.SetConfigFile(path)
+	if err := v.ReadInConfig(); err == nil {
+		return nil
+	} else if !isConfigMissingErr(err) {
+		return err
+	}
+
+	fallback := exampleConfigPath(path)
+	if fallback == "" {
+		return fmt.Errorf("open %s: no such file or directory", path)
+	}
+
+	v.SetConfigFile(fallback)
+	if err := v.ReadInConfig(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func isConfigMissingErr(err error) bool {
+	if err == nil {
+		return false
+	}
+	if os.IsNotExist(err) {
+		return true
+	}
+	var notFound viper.ConfigFileNotFoundError
+	return errors.As(err, &notFound)
+}
+
+func exampleConfigPath(path string) string {
+	base := filepath.Base(path)
+	dir := filepath.Dir(path)
+	switch base {
+	case "config.yaml":
+		return filepath.Join(dir, "config.example.yaml")
+	case "config.yml":
+		return filepath.Join(dir, "config.example.yml")
+	default:
+		return ""
+	}
 }
 
 // Get 返回全局配置,仅在 Load 之后调用。
