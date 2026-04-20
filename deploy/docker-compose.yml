@@ -59,6 +59,8 @@ services:
         condition: service_healthy
     environment:
       TZ: Asia/Shanghai
+      GIN_MODE: ${GIN_MODE:-release}
+      GPT2API_APP_ENV: ${APP_ENV:-prod}
       # entrypoint.sh 会用这些值等 MySQL + goose up
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
