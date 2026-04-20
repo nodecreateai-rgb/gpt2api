@@ -10,14 +10,16 @@ log:
   output: stdout        # stdout | /var/log/gpt2api.log
 
 mysql:
-  dsn: "gpt2api:gpt2api@tcp(127.0.0.1:3306)/gpt2api?parseTime=true&loc=Local&charset=utf8mb4&collation=utf8mb4_unicode_ci"
+  # 容器部署默认写 mysql:3306;若二进制直跑宿主机,改成 127.0.0.1:3306
+  dsn: "gpt2api:gpt2api@tcp(mysql:3306)/gpt2api?parseTime=true&loc=Local&charset=utf8mb4&collation=utf8mb4_unicode_ci"
   # 开发期 100 够用;生产目标 2000 chat SSE + 1000 图,推荐 500,MySQL 侧 max_connections>=1000
   max_open_conns: 100
   max_idle_conns: 20
   conn_max_lifetime_sec: 3600
 
 redis:
-  addr: "127.0.0.1:6379"
+  # 容器部署默认写 redis:6379;若二进制直跑宿主机,改成 127.0.0.1:6379
+  addr: "redis:6379"
   password: ""
   db: 0
   # 开发期 100;生产推荐 500(锁 + 队列 + 令牌桶并发高)
